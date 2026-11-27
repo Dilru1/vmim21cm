@@ -1,5 +1,14 @@
-slurm/env.sh
-logs/
 __pycache__/
 *.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+logs/
 slurm/env.sh
+*.npy
+*.npz
+*.dat
+*.pt
+repro_check/
+!tests/data/*.json
