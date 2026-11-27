@@ -1,0 +1,68 @@
+# Path B VMIM k4 nsqrt2 + NSF L8h128 (2026-11-19). Same as pathb_vmim_n1_L8h128.yaml except arm_name and noise_scale.
+# {arm}_s<C>/summaries = symlink to cnn_paper/vmim/nsqrt2_s<C>/summaries (paper k4 VMIM compressors, stage 1 not rerun).
+
+arm_name: cnn_paper_nsfdepth2/vmim_nsqrt2_L8h128       # <<<
+arm_type: cnn
+scratch_root: /gscratch/ddehiwalage-don/sbi
+n_params: 4
+t_dim: 4
+
+data:
+  s_paths:
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=8.18.dat
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=10.32.dat
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=12.06.dat
+  n_paths:
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=8.18.dat
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=10.32.dat
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=12.06.dat
+  params_path: /data/ddehiwalage-don/data/astro_params_masked_from_original.npy
+  sim_ids_path: /data/ddehiwalage-don/data/original_sim_ids_masked_from_original.npy
+  total_nnoise: 1000
+
+compressor:
+  model: seblock            # 3D residual multi-scale CNN
+  init_norm: true           # cube standardization ON, identical train & export
+  mean_remove: cube         # subtract each cube's own 3D mean (signal+noise), train & export
+  noise_scale: 1.4142135623730951          # <<< nsqrt2 (50 h)
+  aux_only: false           # <<< VMIM: maximise log q(theta | t) through the GMM head
+  aux_anneal: false
+  warmup_epochs: 0          # pure VMIM from epoch 0
+  vmim_head: gmm_old
+  n_mix_head: 2
+  hidden_head: 64
+  head_lr_mult: 5.0
+  sigma_floor: 1.0e-2
+  epochs: 400
+  plateau_patience: 25      # ReduceLROnPlateau: x0.5 after 25 flat epochs, min lr/100
+  probe_every: 5            # RF-R2 / q-sigma probes: logged only
+  probe_patience: 9999    # early stop OFF -> every run trains the full budget
+  batch_size: 16
+  save_batch_size: 512
+  lr: 2.0e-4
+  seed: 43                  # split seed; submit_nle_grid --seed.compressor sets init_seed only
+  tag_arm_with_seed: true
+  val_frac: 0.1
+  augment: true
+  augment_group: data       # the 4 O_h elements that are symmetries of signal+noise (+ periodic shift)
+
+nle:
+  model: gmm                # placeholder; submit_nle_grid.sh overrides with -o nle.model=...
+  nsplit: 10
+  batch_size: 32            # nsf (BS_NSF in submit_nle_grid.sh)
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus
+  diag_floor: 1.0e-4
+  hidden: 128                # <<< paper 64
+  n_layers: 8                # <<< paper 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

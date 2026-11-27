@@ -1,0 +1,9 @@
+pathb vmim k8 n1 L8h128 c43 n42, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s43/chains, , standard_t_nsf_seed_42
+pathb vmim k8 n1 L8h128 c43 n43, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s43/chains, , standard_t_nsf_seed_43
+pathb vmim k8 n1 L8h128 c43 n44, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s43/chains, , standard_t_nsf_seed_44
+pathb vmim k8 n1 L8h128 c44 n42, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s44/chains, , standard_t_nsf_seed_42
+pathb vmim k8 n1 L8h128 c44 n43, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s44/chains, , standard_t_nsf_seed_43
+pathb vmim k8 n1 L8h128 c44 n44, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s44/chains, , standard_t_nsf_seed_44
+pathb vmim k8 n1 L8h128 c45 n42, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s45/chains, , standard_t_nsf_seed_42
+pathb vmim k8 n1 L8h128 c45 n43, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s45/chains, , standard_t_nsf_seed_43
+pathb vmim k8 n1 L8h128 c45 n44, /gscratch/ddehiwalage-don/sbi/cnn_paper_k8/vmim/n1_t8_L8h128_s45/chains, , standard_t_nsf_seed_44

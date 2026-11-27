@@ -1,0 +1,62 @@
+# PATH A (paper) -- experiment 1: does the BASELINE improve with a flow NLE?
+# Same raw PDF+PS summaries (30 dims, no compression) as
+# configs/baseline_/baseline_pdf_ps.yaml; only the density estimator changes:
+#   legacy TF GMM (raw t)  ->  NSF (standardized t), with exactly the NSF
+#   settings of every compressor arm (path A / path B).
+#
+# Shares the baseline arm directory: arm_name is the SAME as the GMM baseline,
+# so stage 1 is NOT rerun (summaries/ already exist) and the NSF model and
+# chains land beside the GMM ones without touching them:
+#   nle/standard_t/nsf/seed_42/      chains/standard_t_nsf_seed_42/
+#
+# Run stages 2+3 only, and do NOT pass --seed.compressor (it would set
+# tag_arm_with_seed=true and look for baseline_pdf_ps/raw_s43, which does not exist):
+#   bash submit_nle_grid.sh configs/paper/patha/baseline_pdf_ps_nsf.yaml --seed.nle 42 "nsf" "std" 3
+
+#   python make_sbc_list.py configs/paper/patha/baseline_pdf_ps_nsf.yaml --seed.nle 42 --families nsf --label "baseline_pdf_ps NSF" --out sbc_lists/paper/patha/baseline_nsf.list
+#    
+#   python make_sbc_list.py configs/paper/patha/baseline_pdf_ps_nsf_mean.yaml --seed.nle 42 --families nsf --label "PDF+PS+mean NSF"   --out sbc_lists/paper/patha/pdf_ps_mean_nsf.list
+#   python make_sbc_list.py configs/paper/patha/baseline_pdf_ps_nsf.yaml      --seed.nle 42 --families nsf --label "PDF+PS NSF"        --out sbc_lists/paper/patha/pdf_ps_nsf.list
+#   python make_sbc_list.py configs/baseline_/baseline_pdf_ps.yaml            --seed.nle 42 --families gmm --label "PDF+PS GMM"        --out sbc_lists/paper/patha/pdf_ps_gmm.list
+#   python make_sbc_list.py configs/baseline_/baseline_pdf_ps_mean.yaml       --seed.nle 42 --families gmm --label "PDF+PS+mean GMM"   --out sbc_lists/paper/patha/pdf_ps_mean_gmm.list
+#   sbatch slurm/stage4.sbatch "sbc_lists/paper/patha/pdf_ps_gmm.list sbc_lists/paper/patha/pdf_ps_nsf.list sbc_lists/paper/patha/pdf_ps_mean_gmm.list sbc_lists/paper/patha/pdf_ps_mean_nsf.list" sbc_out/paper/baseline
+
+# n_params is 5 here (the baseline theta includes f_esc, as in the GMM baseline),
+# so the estimator is the only change vs the GMM baseline. Stage 4 compares the
+# 4 shared parameters.
+# Filename MUST contain "baseline" -- pipeline.sh routes on it to stage1_raw.sbatch.
+
+arm_name: baseline_pdf_ps/raw
+arm_type: raw
+scratch_root: /gscratch/ddehiwalage-don/sbi_runs/BASELINE
+n_params: 5
+t_dim: 0            # unused for raw arms; stage 2 infers t_dim from t.shape[1]
+
+data:
+  summaries_npz: /gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/baseline_pdf_ps_Nnoise1000.npz
+
+compressor:
+  val_frac: 0.1
+  seed: 43
+  tag_arm_with_seed: false   # MUST stay false: the baseline has no compressor seed
+
+nle:
+  model: nsf               # submit_nle_grid.sh overrides with -o nle.model=nsf anyway
+  nsplit: 10
+  batch_size: 32           # identical to the compressor arms' NSF
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus    # NOT semelin_legacy: standard training loop, as every NSF arm
+  diag_floor: 1.0e-4
+  hidden: 64
+  n_layers: 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

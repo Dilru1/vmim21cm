@@ -1,0 +1,47 @@
+# NSF DEPTH TEST (2026-10-19) -- baseline PDF+PS, NSF with n_layers 8 (paper: 4).
+# Copy of configs_paper/baseline/baseline_pdf_ps_nsf.yaml; ONLY arm_name and
+# nle.n_layers changed (<<<). Question: is the L=4 flow capacity-limited?
+# Gate: compare best val NLL (stage-2 log) vs L=4 seed_42/43/44 before any SBC.
+#
+# Separate arm so the L=4 NSF (baseline_pdf_ps/raw/nle/standard_t/nsf/seed_*)
+# is never overwritten. summaries/ is a SYMLINK to baseline_pdf_ps/raw/summaries
+# (stage 1 NOT rerun). Filename keeps "baseline" for pipeline.sh routing.
+#
+#   bash submit_nle_grid.sh configs_paper/nsf_depth/baseline_pdf_ps_nsf_L8.yaml --seed.nle 42,43,44 "nsf" "std" 23
+#
+#   python make_sbc_list.py configs_paper/nsf_depth/baseline_pdf_ps_nsf_L8.yaml --seed.nle 42,43,44 --families nsf --label "PDF+PS NSF L8" --out paper_out/nsf_depth/pdf_ps_nsf_L8.list
+
+arm_name: baseline_pdf_ps/raw_nsfL8     # <<<
+arm_type: raw
+scratch_root: /gscratch/ddehiwalage-don/sbi_runs/BASELINE
+n_params: 5
+t_dim: 0            # unused for raw arms; stage 2 infers t_dim from t.shape[1]
+
+data:
+  summaries_npz: /gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/baseline_pdf_ps_Nnoise1000.npz
+
+compressor:
+  val_frac: 0.1
+  seed: 43
+  tag_arm_with_seed: false   # MUST stay false: the baseline has no compressor seed
+
+nle:
+  model: nsf               # submit_nle_grid.sh overrides with -o nle.model=nsf anyway
+  nsplit: 10
+  batch_size: 32           # identical to the compressor arms' NSF
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus    # NOT semelin_legacy: standard training loop, as every NSF arm
+  diag_floor: 1.0e-4
+  hidden: 64
+  n_layers: 8              # <<< paper: 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

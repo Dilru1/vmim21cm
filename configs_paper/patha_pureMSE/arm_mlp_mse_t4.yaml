@@ -1,0 +1,59 @@
+# PATH A, PURE MSE (direct regression), k=4 = n_params: t = E[theta|x] from the MLP on PDF+PS.
+# Same network / data / training budget / NLE as configs_paper/patha_pureVMIM3/arm_mlp_vmim_t4_mix2.yaml;
+# ONLY the objective differs (<<<): aux_only + direct_regression (as Path B configs_paper/pathb/mse),
+# so the VMIM head keys are dropped. MSE > k=4 not run (no natural k>4 summary; Path B MSE is k=4 too).
+# Purpose (2026-11-13): Path A k=4 calibration cause -- does a k=4 Path A summary that is NOT VMIM-trained
+# show the same tau-Mmin long-axis over-width? Compare vs patha_pureVMIM3 k4 and Path B MSE n1.
+# 3x3 seeds via configs_paper/patha_pureMSE/submit_9seeds.sh (overrides as submit_mlp_grid):
+#   -o compressor.init_seed=C -o compressor.tag_arm_with_seed=true
+#   -o nle.model=nsf -o nle.batch_size=32 -o nle.init_seed=N -o nle.seed_subdir=true
+# Lists: tester.make_lists (auto-discovers seeds) or
+#   python make_sbc_list.py configs_paper/patha_pureMSE/arm_mlp_mse_t4.yaml --seed.compressor 43 \
+#       --seed.nle 42 --families nsf --label "path A pure MSE t4" --out sbc_lists/paper/patha_pureMSE/mse_t4.list
+
+arm_name: mlp_paper_pureMSE/mse_t4       # <<<
+arm_type: mlp
+scratch_root: /gscratch/ddehiwalage-don/sbi
+n_params: 4
+t_dim: 4
+
+data:
+  summaries_npz: /gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/baseline_pdf_ps_Nnoise1000.npz
+
+compressor:
+  aux_only: true            # <<< MSE objective, no VMIM head
+  direct_regression: true   # <<< t itself is the regression output (t_dim = n_params)
+  lam_aux: 1.0              # <<<
+  dense_layers: [256, 256, 128, 64]
+  dropout: 0.0
+  epochs: 400
+  plateau_patience: 15      # ReduceLROnPlateau
+  probe_every: 5            # probes: logged only
+  probe_patience: 100000    # early stop OFF -> every run trains the full budget
+  batch_size: 32
+  save_batch_size: 4096
+  lr: 2.0e-4
+  seed: 43                  # split seed; --seed.compressor sets init_seed only
+  tag_arm_with_seed: true
+  val_frac: 0.1
+
+nle:
+  model: gmm                # placeholder; overridden with -o nle.model=nsf
+  nsplit: 10
+  batch_size: 32
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus
+  diag_floor: 1.0e-4
+  hidden: 64
+  n_layers: 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

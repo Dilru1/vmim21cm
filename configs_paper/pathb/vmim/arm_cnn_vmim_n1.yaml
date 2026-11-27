@@ -1,0 +1,83 @@
+# PATH B (paper) -- CNN compressor on mean-removed cubes, VMIM objective, noise n1.
+# Generated as one of a 2 x 3 grid (vmim|mse x n1|n2|n3); the six files differ
+# ONLY in the lines marked <<<.
+#
+# Training budget: fixed 400 epochs for every arm and noise level. The
+# RF-probe early stop is disabled (probe_patience huge) -- it fired 125 epochs
+# after an early, noisy probe-R2 peak while the val loss was still falling,
+# so each arm/seed trained a different length. Probes still run every 5
+# epochs and are logged (rf_r2_history.npy) for the training plots.
+# Stage 1 exports the FINAL-epoch weights. ~41 s/epoch on tycho58 ->
+# 400 epochs ~ 4.6 h: slurm/stage1_cnn.sbatch --time must exceed this.
+#
+#   NSHARD=5 MAXPAR=2 bash submit_nle_grid.sh configs/paper/vmim/arm_cnn_vmim_n1.yaml --seed.compressor 44,45 --seed.nle 43,44 "nsf" "std" 23
+#   NSHARD=5 MAXPAR=2 bash submit_nle_grid.sh configs/paper/vmim/arm_cnn_vmim_n1.yaml --seed.compressor 43 --seed.nle 42 "nsf" "std" 123
+
+#   python make_sbc_list.py configs/paper/vmim/arm_cnn_vmim_n1.yaml --seed.compressor 43,44,45 --seed.nle 42 --families nsf --label "path B vmim n1" --out sbc_lists/paper/pathb/vmim_n1.list
+#   sbatch slurm/stage4.sbatch "sbc_lists/paper/patha/vmim_t16.list" sbc_out/paper/path_A
+
+arm_name: cnn_paper/vmim/n1        # <<<
+arm_type: cnn
+scratch_root: /gscratch/ddehiwalage-don/sbi
+n_params: 4
+t_dim: 4
+
+data:
+  s_paths:
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=8.18.dat
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=10.32.dat
+    - /data/ddehiwalage-don/data/dtb_data/clean_cubes_z=12.06.dat
+  n_paths:
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=8.18.dat
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=10.32.dat
+    - /data/ddehiwalage-don/data/dtb_data/noise_cubes_100h_z=12.06.dat
+  params_path: /data/ddehiwalage-don/data/astro_params_masked_from_original.npy
+  sim_ids_path: /data/ddehiwalage-don/data/original_sim_ids_masked_from_original.npy
+  total_nnoise: 1000
+
+compressor:
+  model: seblock            # 3D residual multi-scale CNN
+  init_norm: true           # cube standardization ON, identical train & export
+  mean_remove: cube         # subtract each cube's own 3D mean (signal+noise), train & export
+  noise_scale: 1.0          # <<< n1
+  aux_only: false           # <<< VMIM: maximise log q(theta | t) through the GMM head
+  aux_anneal: false
+  warmup_epochs: 0          # pure VMIM from epoch 0
+  vmim_head: gmm_old
+  n_mix_head: 2
+  hidden_head: 64
+  head_lr_mult: 5.0
+  sigma_floor: 1.0e-2
+  epochs: 400
+  plateau_patience: 25      # ReduceLROnPlateau: x0.5 after 25 flat epochs, min lr/100
+  probe_every: 5            # RF-R2 / q-sigma probes: logged only
+  probe_patience: 9999    # early stop OFF -> every run trains the full budget
+  batch_size: 16
+  save_batch_size: 512
+  lr: 2.0e-4
+  seed: 43                  # split seed; submit_nle_grid --seed.compressor sets init_seed only
+  tag_arm_with_seed: true
+  val_frac: 0.1
+  augment: true
+  augment_group: data       # the 4 O_h elements that are symmetries of signal+noise (+ periodic shift)
+
+nle:
+  model: gmm                # placeholder; submit_nle_grid.sh overrides with -o nle.model=...
+  nsplit: 10
+  batch_size: 32            # nsf (BS_NSF in submit_nle_grid.sh)
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus
+  diag_floor: 1.0e-4
+  hidden: 64
+  n_layers: 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

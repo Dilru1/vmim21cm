@@ -1,0 +1,62 @@
+# PATH A, PURE VMIM + 2-COMPONENT GMM HEAD, k=8.
+# Copy of configs_paper/patha_pureVMIM/arm_mlp_vmim_t8.yaml; ONLY the arm name and
+# compressor.n_mix_head (4 -> 2) changed (<<<). Stages 1+2+3.
+# Motivation (2026-11-10): cell G (patha_pureVMIM2/arm_mlp_vmim_t4_mix2, c43 n42) was the only
+# k=4 variant outside the 9-seed range of the paper runs in calibration AND GV (mean calib
+# ratio 2.21 vs 2.59-3.23; GV 7.06e-8 vs 8.1-9.6e-8). Here: k=4 at compressor seed 44 (G = c43
+# replicate), k=8 and k=16 at c43 (paired with mlp_paper_pureVMIM/vmim_t{8,16}_s43, n_mix 4).
+# Submitted by hand (stage 1 with --time 10h); same overrides as submit_mlp_grid:
+#   -o compressor.init_seed=43 -o compressor.tag_arm_with_seed=true
+#   -o nle.model=nsf -o nle.batch_size=32 -o nle.init_seed=42 -o nle.seed_subdir=true
+#   python make_sbc_list.py configs_paper/patha_pureVMIM3/arm_mlp_vmim_t8_mix2.yaml --seed.compressor 43 \
+#       --seed.nle 42 --families nsf --label "path A pure t8 mix2" --out sbc_lists/paper/patha_pureVMIM3/vmim_t8_mix2.list
+
+arm_name: mlp_paper_pureVMIM3/vmim_t8_mix2       # <<<
+arm_type: mlp
+scratch_root: /gscratch/ddehiwalage-don/sbi
+n_params: 4
+t_dim: 8                          # <<<
+
+data:
+  summaries_npz: /gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/baseline_pdf_ps_Nnoise1000.npz
+
+compressor:
+  vmim_head: gmm_old
+  n_mix_head: 2             # <<< was 4
+  hidden_head: 64
+  head_lr_mult: 5.0
+  dense_layers: [256, 256, 128, 64]
+  dropout: 0.0
+  warmup_epochs: 0          # PURE VMIM from epoch 0: no MSE warm-up (aux MSE weight 0 every epoch)
+  sigma_floor: 1.0e-2
+  epochs: 400
+  plateau_patience: 15      # ReduceLROnPlateau
+  probe_every: 5            # RF-R2 / q-sigma probes: logged only
+  probe_patience: 100000    # early stop OFF -> every run trains the full budget
+  batch_size: 32
+  save_batch_size: 4096
+  lr: 2.0e-4
+  seed: 43                  # split seed; --seed.compressor sets init_seed only
+  tag_arm_with_seed: true
+  val_frac: 0.1
+
+nle:
+  model: gmm                # placeholder; submit_mlp_grid.sh overrides with -o nle.model=...
+  nsplit: 10
+  batch_size: 32
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus
+  diag_floor: 1.0e-4
+  hidden: 64
+  n_layers: 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3

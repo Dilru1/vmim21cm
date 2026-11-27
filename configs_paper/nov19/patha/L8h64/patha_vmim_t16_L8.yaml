@@ -1,0 +1,54 @@
+# NSF 9-SEED GRID (2026-11-19), Path A k=16 pure VMIM (paper pureVMIM3 mix2), stage 1 NOT rerun.
+# {arm}_s<C>/summaries = symlink to mlp_paper_pureVMIM3/vmim_t16_mix2_s<C>/summaries.
+# ONLY nle.n_layers=8 + nle.hidden=64 changed (paper 4 / 64). 9 seeds c43-45 x n42-44. STAGE 2 ONLY for now
+# (user 11-19: s3 later). Submit: configs_paper/nsf9seed/submit_nsf9seed_s2.sh
+#   python make_sbc_list.py configs_paper/nsf9seed/patha_vmim_t16_L8.yaml --seed.compressor 43,44,45 --seed.nle 42,43,44 --families nsf --label "path A k16 L8" --out configs_paper/nsf9seed/patha_vmim_t16_L8.list
+arm_name: mlp_paper_nsf9seed/vmim_t16_L8       # <<<
+arm_type: mlp
+scratch_root: /gscratch/ddehiwalage-don/sbi
+n_params: 4
+t_dim: 16                          # <<<
+
+data:
+  summaries_npz: /gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/baseline_pdf_ps_Nnoise1000.npz
+
+compressor:
+  vmim_head: gmm_old
+  n_mix_head: 2             # <<< was 4
+  hidden_head: 64
+  head_lr_mult: 5.0
+  dense_layers: [256, 256, 128, 64]
+  dropout: 0.0
+  warmup_epochs: 0          # PURE VMIM from epoch 0: no MSE warm-up (aux MSE weight 0 every epoch)
+  sigma_floor: 1.0e-2
+  epochs: 400
+  plateau_patience: 15      # ReduceLROnPlateau
+  probe_every: 5            # RF-R2 / q-sigma probes: logged only
+  probe_patience: 100000    # early stop OFF -> every run trains the full budget
+  batch_size: 32
+  save_batch_size: 4096
+  lr: 2.0e-4
+  seed: 43                  # split seed; --seed.compressor sets init_seed only
+  tag_arm_with_seed: true
+  val_frac: 0.1
+
+nle:
+  model: gmm                # placeholder; submit_mlp_grid.sh overrides with -o nle.model=...
+  nsplit: 10
+  batch_size: 32
+  lr_phase1: 2.0e-4
+  lr_phase2: 2.0e-5
+  num_workers: 2
+  val_frac: 0.1
+  seed: 42
+  n_mix: 2
+  param_style: softplus
+  diag_floor: 1.0e-4
+  hidden: 64               # <<< paper 64
+  n_layers: 8                # <<< paper 4
+  num_bins: 8
+  tail_bound: 5.0
+
+mcmc:
+  wedge_tau_idx: 1
+  wedge_mmin_idx: 3
