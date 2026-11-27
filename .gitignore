@@ -2,3 +2,4 @@ slurm/env.sh
 logs/
 __pycache__/
 *.pyc
+slurm/env.sh
