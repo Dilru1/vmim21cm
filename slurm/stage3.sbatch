@@ -1,27 +1,23 @@
 #!/bin/bash
 #SBATCH --job-name=s3_mcmc
-#SBATCH --output=logs/stage3/s3_%A_%a.out
-#SBATCH --error=logs/stage3/s3_%A_%a.err
+#SBATCH --output=logs/%x_%j.out
 #SBATCH --partition=medium
-#SBATCH --time=5:00:00
-#SBATCH --ntasks=1
+#SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
-#SBATCH --array=0-5
-#SBATCH --exclude=tycho[06,09-14,16-17,20-24,27-30,32,53-54,56,58-60,83,91]
-
+#SBATCH --mem=16G
+# usage: sbatch slurm/stage3.sbatch CONFIG CSEED NSEED [extra vmim21cm stage3 args]
+# One job per run: all SBC targets sampled together (batched; ~20-30 min for 908 targets).
+# For an array split instead, add e.g. --array=0-5 on the command line.
 set -euo pipefail
-mkdir -p logs
-module purge; module load anaconda/2024.10-1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate /data/ddehiwalage-don/conda_envs/torch_nadam
-
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+cd "$SLURM_SUBMIT_DIR"
+source slurm/env.sh
+export PYTHONPATH="$SLURM_SUBMIT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
+sbi_env cpu
 export CUDA_VISIBLE_DEVICES=""
-
-CONFIG=${1:?pass a config}; shift
-SPLITS=6
-python -u stage3_mcmc.py "$CONFIG" --task-num "${SLURM_ARRAY_TASK_ID}" --task-nb "$SPLITS" --device cpu "$@"
+CFG=$1 CS=$2 NS=$3; shift 3
+if [[ -n "${SLURM_ARRAY_TASK_ID:-}" ]]; then
+  N=$(( SLURM_ARRAY_TASK_MAX - SLURM_ARRAY_TASK_MIN + 1 ))
+  set -- --task "$SLURM_ARRAY_TASK_ID" --ntasks "$N" "$@"
+fi
+python -u -m vmim21cm stage3 "$CFG" --cseed "$CS" --nseed "$NS" "$@"

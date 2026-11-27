@@ -1,0 +1,18 @@
+# sbi21cm rerun (c43 n42) vs the FIN paper runs: same seeds, same SBC targets.
+out: ${SBI_OUT}/eval/repro_check
+thin: 11
+dlogp: 10.0
+burnin_frac: 0.0
+nbins: 30
+walker_cut: 5.0
+params: [0, 1, 2, 3]
+param_names: [log10_FX, tau, rHS, log10_Mmin]
+groups:
+  - {label: "PDF+PS sbi21cm",   chains: [/gscratch/ddehiwalage-don/sbi21cm_runs/baseline/pdf_ps/raw/chains_n42]}
+  - {label: "PDF+PS FIN",       chains: [/gscratch/ddehiwalage-don/sbi_runs/BASELINE/baseline_pdf_ps/raw/chains/standard_t_nsf_seed_42]}
+  - {label: "A k4 sbi21cm",     chains: [/gscratch/ddehiwalage-don/sbi21cm_runs/patha/vmim_k4/c43/chains_n42]}
+  - {label: "A k4 FIN",         chains: [/gscratch/ddehiwalage-don/sbi/mlp_paper_pureVMIM3/vmim_t4_mix2_s43/chains/standard_t_nsf_seed_42]}
+  - {label: "B VMIM 100h sbi21cm", chains: [/gscratch/ddehiwalage-don/sbi21cm_runs/pathb/vmim_100h/c43/chains_n42]}
+  - {label: "B VMIM 100h FIN",  chains: [/gscratch/ddehiwalage-don/sbi/cnn_paper/vmim/n1_s43/chains/standard_t_nsf_seed_42]}
+  - {label: "B MSE 100h sbi21cm",  chains: [/gscratch/ddehiwalage-don/sbi21cm_runs/pathb/mse_100h/c43/chains_n42]}
+  - {label: "B MSE 100h FIN",   chains: [/gscratch/ddehiwalage-don/sbi/cnn_paper/mse/n1_s43/chains/standard_t_nsf_seed_42]}

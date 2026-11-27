@@ -1,83 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=s4_eval
-#SBATCH --output=logs/stage4/s4_%j.out
-#SBATCH --error=logs/stage4/s4_%j.err
+#SBATCH --output=logs/%x_%j.out
 #SBATCH --partition=medium
-#SBATCH --time=300
-#SBATCH --ntasks=1
+#SBATCH --time=5:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-
+# usage: sbatch slurm/stage4.sbatch EVAL_CONFIG [--out DIR] [--set KEY=VALUE]
 set -euo pipefail
-
-cd "${SLURM_SUBMIT_DIR:-$(pwd)}"
-mkdir -p logs/stage4
-
-unset PYTHONPATH PYTHONHOME PYTHONSTARTUP
-unset ${!CONDA@} 2>/dev/null || true
-export MPLBACKEND=Agg
-export SBI_EVAL_WORKERS=${SBI_EVAL_WORKERS:-16}
-
-if ! command -v module >/dev/null 2>&1; then
-  for f in /etc/profile.d/modules.sh /usr/share/Modules/init/bash \
-           /usr/share/lmod/lmod/init/bash; do
-    [[ -r "$f" ]] && source "$f" && break
-  done
-fi
-module purge; module load anaconda/2024.10-1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate /data/ddehiwalage-don/conda_envs/torch_nadam
-
-export CUDA_VISIBLE_DEVICES=""
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-
-LISTS=${1:?usage: sbatch slurm/stage4.sbatch <list[ list2 ...]> <outdir> [extra args]}
-OUT=${2:?usage: sbatch slurm/stage4.sbatch <list[ list2 ...]> <outdir> [extra args]}
-shift 2
-
-LIST_ARGS=()
-for L in $LISTS; do
-  [[ -f "$L" ]] || { echo "ERROR: no such list file: $L" >&2; exit 1; }
-  LIST_ARGS+=(--list "$L")
-done
-
-NARM=0
-for L in $LISTS; do
-  while IFS= read -r raw; do
-    line="${raw%%#*}"; line="$(echo "$line" | xargs)"
-    [[ -z "$line" ]] && continue
-    NARM=$((NARM+1))
-    p="$(echo "$line" | cut -d, -f2 | xargs)"
-    sub="$(echo "$line" | cut -d, -f4 | xargs)"
-    if [[ ! -d "$p" ]]; then
-      echo "ERROR: [$L] path does not exist: $p" >&2; exit 1
-    fi
-    if [[ -n "$sub" ]]; then
-      n=$(find "$p" -maxdepth 2 -type d -name "*${sub}*" 2>/dev/null | wc -l)
-      if   (( n == 0 )); then echo "ERROR: [$L] no chains dir matching '$sub' under $p" >&2; exit 1
-      elif (( n > 1 ));  then echo "ERROR: [$L] '$sub' matches $n dirs under $p -- stage4 will refuse. Name the seed in full." >&2; exit 1
-      fi
-    fi
-  done < "$L"
-done
-echo "lists: $LISTS   arms: $NARM   out: $OUT"
-
-mkdir -p "$OUT"
-
-python -u stage4_eval.py "${LIST_ARGS[@]}" \
-    --out "$OUT" \
-    --dlogp 10 \
-    --n-corner 5 \
-    --filtered-only \
-    ${ADVANCED:+--advanced} \
-    "$@"
-
-if [[ -z "${NO_BS:-}" ]]; then
-  echo "bs_table -> $OUT/"
-  python -u paper_plot_final/bs_table.py "$OUT" || echo "WARNING: bs_table.py failed (stage-4 outputs are fine)" >&2
-fi
-
-echo "done -> $OUT/"
-ls -la "$OUT" | head -20 || true   # head closes the pipe early; SIGPIPE + pipefail would mark the job FAILED
+cd "$SLURM_SUBMIT_DIR"
+source slurm/env.sh
+export PYTHONPATH="$SLURM_SUBMIT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
+sbi_env cpu
+export CUDA_VISIBLE_DEVICES="" MPLBACKEND=Agg
+python -u -m vmim21cm stage4 "$@"

@@ -1,0 +1,25 @@
+# Paper table: every run of every config (3 compressor x 3 NLE seeds), evaluated on the
+# simulations shared by all runs. Path B 100 h uses compressor seeds 43, 44 only, as in the paper.
+out: ${SBI_OUT}/eval/paper
+thin: 11
+dlogp: 10.0               # keep samples within dlogp of the chain maximum
+burnin_frac: 0.0
+nbins: 30
+walker_cut: 5.0           # drop walkers whose median log p < 90th pct of walker medians - walker_cut
+params: [0, 1, 2, 3]
+param_names: [log10_FX, tau, rHS, log10_Mmin]
+groups:
+  - {label: "PDF+PS",               config: configs/baseline/pdf_ps.yaml}
+  - {label: "Path A VMIM k=4",     config: configs/patha/vmim_k4.yaml}
+  - {label: "Path A VMIM k=8",     config: configs/patha/vmim_k8.yaml}
+  - {label: "Path A VMIM k=16",    config: configs/patha/vmim_k16.yaml}
+  - {label: "Path A MSE k=4",      config: configs/patha/mse_k4.yaml}
+  - {label: "Path B VMIM k=8 100h", config: configs/pathb/vmim_k8_100h.yaml, cseeds: [43, 44]}
+  - {label: "Path B VMIM k=8 50h",  config: configs/pathb/vmim_k8_50h.yaml}
+  - {label: "Path B VMIM k=8 25h",  config: configs/pathb/vmim_k8_25h.yaml}
+  - {label: "Path B VMIM k=4 100h", config: configs/pathb/vmim_k4_100h.yaml, cseeds: [43, 44]}
+  - {label: "Path B VMIM k=4 50h",  config: configs/pathb/vmim_k4_50h.yaml}
+  - {label: "Path B VMIM k=4 25h",  config: configs/pathb/vmim_k4_25h.yaml}
+  - {label: "Path B MSE k=4 100h",  config: configs/pathb/mse_k4_100h.yaml, cseeds: [43, 44]}
+  - {label: "Path B MSE k=4 50h",   config: configs/pathb/mse_k4_50h.yaml}
+  - {label: "Path B MSE k=4 25h",   config: configs/pathb/mse_k4_25h.yaml}

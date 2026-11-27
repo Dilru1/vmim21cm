@@ -1,27 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=s1_mlp
-#SBATCH --output=logs/stage1/s1_mlp_%j.out
-#SBATCH --error=logs/stage1/s1_mlp_%j.err
+#SBATCH --output=logs/%x_%j.out
 #SBATCH --partition=medium
-#SBATCH --time=6:00:00
-#SBATCH --ntasks=1
+#SBATCH --time=10:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
-
+# usage: sbatch slurm/stage1_mlp.sbatch CONFIG CSEED
 set -euo pipefail
-mkdir -p logs
-NODE=$(hostname -s)
-if [[ "$NODE" == "tycho91" ]]; then
-    module purge; module load cuda/12.0 anaconda/2024.10-1
-    source "$(conda info --base)/etc/profile.d/conda.sh"; conda activate torch_gpu
-else
-    module purge; module load cuda/11.8 anaconda/2024.10-1
-    source "$(conda info --base)/etc/profile.d/conda.sh"
-    conda activate /data/ddehiwalage-don/conda_envs/torch_nadam
-fi
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-CONFIG=${1:-configs/arm_mlp.yaml}
-
-python -u stage1_compress.py "$CONFIG" "${@:2}"
+cd "$SLURM_SUBMIT_DIR"
+source slurm/env.sh
+export PYTHONPATH="$SLURM_SUBMIT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
+sbi_env cpu
+export CUDA_VISIBLE_DEVICES=""
+python -u -m vmim21cm stage1 "$1" --cseed "$2"

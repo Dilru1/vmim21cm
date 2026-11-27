@@ -1,22 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name=s1_merge
-#SBATCH --output=logs/stage1/s1_merge_%j.out
-#SBATCH --error=logs/stage1/s1_merge_%j.err
+#SBATCH --output=logs/%x_%j.out
 #SBATCH --partition=medium
 #SBATCH --time=1:00:00
-#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
-
+# usage: sbatch slurm/stage1_merge.sbatch CONFIG CSEED
 set -euo pipefail
-mkdir -p logs
-module purge; module load anaconda/2024.10-1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate /data/ddehiwalage-don/conda_envs/torch_nadam
-
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-export CUDA_VISIBLE_DEVICES=""
-
-CONFIG=${1:?usage: sbatch slurm/stage1_merge.sbatch configs/arm_xxx.yaml}
-
-python -u merge_export_shards.py "$CONFIG" "${@:2}"
+cd "$SLURM_SUBMIT_DIR"
+source slurm/env.sh
+export PYTHONPATH="$SLURM_SUBMIT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
+sbi_env cpu
+python -u -m vmim21cm merge "$1" --cseed "$2"
