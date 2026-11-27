@@ -209,4 +209,3 @@ tests/            pytest suite
 
 ---
 
-<p align="center"><sub>LUX · Observatoire de Paris · Université PSL</sub></p>
